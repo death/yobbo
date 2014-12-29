@@ -14,6 +14,7 @@
    #:job-active-p
    #:job-next-run
    #:scheduler
+   #:start
    #:whine
    #:command))
 
@@ -59,6 +60,7 @@
    (jobs :initform '() :accessor jobs)
    (job-threads :initform (make-hash-table) :accessor job-threads)))
 
+(defgeneric start (scheduler))
 (defgeneric whine (scheduler control-string &rest args))
 (defgeneric command (scheduler op &rest args))
 (defgeneric job-thread (job scheduler))
@@ -70,6 +72,10 @@
 (defgeneric scan-jobs (scheduler))
 (defgeneric scheduler-loop (scheduler))
 (defgeneric process-command (scheduler op &key))
+
+(defmethod start ((scheduler scheduler))
+  (bt:make-thread (lambda () (scheduler-loop scheduler))
+                  :name "Job scheduler"))
 
 (defmethod whine ((scheduler scheduler) control-string &rest args)
   (declare (ignore control-string args)))
