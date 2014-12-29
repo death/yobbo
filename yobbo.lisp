@@ -22,6 +22,7 @@
    #:object
    #:scheduler
    #:scheduler-status
+   #:entries
    #:scheduler-log
    #:format-control
    #:format-arguments
@@ -101,7 +102,7 @@
    (entries :initform (make-hash-table) :accessor entries)
    (lock :initform (bt:make-lock "Scheduler lock") :accessor lock)))
 
-(define-event scheduler-status)
+(define-event scheduler-status entries)
 (define-event scheduler-log format-control format-arguments)
 
 (defgeneric start (scheduler))
@@ -234,7 +235,8 @@
     (remhash job (entries scheduler))))
 
 (define-scheduler-command :request-status ()
-  (fire scheduler 'scheduler-status))
+  (fire scheduler 'scheduler-status
+        :entries (entries scheduler)))
 
 (define-scheduler-command :activate (job-name)
   (setf (job-active-p (find-job job-name)) t))
