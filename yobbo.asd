@@ -10,6 +10,6 @@
   :description "A small job scheduler hack"
   :author "death <github.com/death>"
   :license "MIT"
-  :depends-on (#:alexandria #:bordeaux-threads #:lparallel#:constantia)
+  :depends-on (#:alexandria #:bordeaux-threads #:lparallel #:constantia)
   :components
   ((:file "yobbo")))
