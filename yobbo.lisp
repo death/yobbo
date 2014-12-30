@@ -6,6 +6,8 @@
   (:import-from #:alexandria #:removef)
   (:import-from #:constantia #:speaker #:fire #:define-event
                 #:add-listener #:remove-listener)
+  (:import-from #:lparallel.queue #:make-queue #:push-queue
+                #:try-pop-queue)
   (:use #:cl)
   (:export
    #:job
@@ -97,7 +99,7 @@
    (listener :initarg :listener :accessor listener)))
 
 (defclass scheduler (speaker)
-  ((command-queue :initform (lq:make-queue) :accessor command-queue)
+  ((command-queue :initform (make-queue) :accessor command-queue)
    (jobs :initform '() :accessor jobs)
    (entries :initform (make-hash-table) :accessor entries)
    (lock :initform (bt:make-lock "Scheduler lock") :accessor lock)))
@@ -123,11 +125,11 @@
         :format-arguments (copy-list args)))
 
 (defmethod command ((scheduler scheduler) op &rest args)
-  (lq:push-queue (cons op args) (command-queue scheduler)))
+  (push-queue (cons op args) (command-queue scheduler)))
 
 (defmethod scheduler-loop ((scheduler scheduler))
-  (loop for command = (lq:try-pop-queue (command-queue scheduler)
-                                        :timeout 1)
+  (loop for command = (try-pop-queue (command-queue scheduler)
+                                     :timeout 1)
         do (handler-case
                (bt:with-lock-held ((lock scheduler))
                  (if (null command)
