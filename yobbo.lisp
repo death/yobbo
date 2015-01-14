@@ -113,6 +113,7 @@
 (defgeneric scheduler-loop (scheduler))
 (defgeneric process-command (scheduler op &key))
 (defgeneric scan-jobs (scheduler))
+(defgeneric update-job-entry (scheduler job &key))
 (defgeneric scheduler-job-event (scheduler job event))
 
 (defmethod start ((scheduler scheduler))
@@ -169,6 +170,25 @@
           (t
            (setf (thread entry) nil)))))
 
+(defmethod update-job-entry ((scheduler scheduler) job
+                             &key (start-time nil start-time-supplied)
+                                  (end-time nil end-time-supplied)
+                                  (result nil result-supplied)
+                                  (status nil status-supplied)
+                                  (thread nil thread-supplied))
+  (let ((entry (gethash job (entries scheduler))))
+    (when entry
+      (when start-time-supplied
+        (setf (start-time entry) start-time))
+      (when end-time-supplied
+        (setf (end-time entry) end-time))
+      (when result-supplied
+        (setf (result entry) result))
+      (when status-supplied
+        (setf (status entry) status))
+      (when thread-supplied
+        (setf (thread entry) thread)))))
+
 (defmethod scheduler-job-event ((scheduler scheduler) job event)
   (declare (ignore job event)))
 
@@ -177,32 +197,32 @@
     (call-next-method)))
 
 (defmethod scheduler-job-event ((scheduler scheduler) job (event job-started))
-  (let ((entry (gethash job (entries scheduler))))
-    (setf (start-time entry) (get-universal-time))
-    (setf (end-time entry) nil)
-    (setf (result entry) nil)
-    (setf (status entry) :running)))
+  (update-job-entry scheduler job
+                    :start-time (get-universal-time)
+                    :end-time nil
+                    :result nil
+                    :status :running))
 
 (defmethod scheduler-job-event ((scheduler scheduler) job (event job-error))
-  (let ((entry (gethash job (entries scheduler))))
-    (setf (end-time entry) (get-universal-time))
-    (setf (result entry) (object event))
-    (setf (status entry) :failed)
-    (setf (thread entry) nil)))
+  (update-job-entry scheduler job
+                    :end-time (get-universal-time)
+                    :result (object event)
+                    :status :failed
+                    :thread nil))
 
 (defmethod scheduler-job-event ((scheduler scheduler) job (event job-cancelled))
-  (let ((entry (gethash job (entries scheduler))))
-    (setf (end-time entry) (get-universal-time))
-    (setf (result entry) (object event))
-    (setf (status entry) :cancelled)
-    (setf (thread entry) nil)))
+  (update-job-entry scheduler job
+                    :end-time (get-universal-time)
+                    :result (object event)
+                    :status :cancelled
+                    :thread nil))
 
 (defmethod scheduler-job-event ((scheduler scheduler) job (event job-done))
-  (let ((entry (gethash job (entries scheduler))))
-    (setf (end-time entry) (get-universal-time))
-    (setf (result entry) nil)
-    (setf (status entry) :done)
-    (setf (thread entry) nil)))
+  (update-job-entry scheduler job
+                    :end-time (get-universal-time)
+                    :result (object event)
+                    :status :done
+                    :thread nil))
 
 (defmethod scheduler-job-event ((scheduler scheduler) job (event job-warn))
   (whine scheduler "Job ~S warned: ~A" job (object event)))
